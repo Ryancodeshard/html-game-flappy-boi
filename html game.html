@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<link rel="stylesheet" type="text/css" href="stylesheet.css">
+
+<style>
+canvas {
+    border:1px solid #d3d3d3;
+    background-color: #f1f1f1;
+	padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    width: 800px;
+}
+div {
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    width: 800px;
+}
+
+</style>
+</head>
+<body onload="startGame()">
+<script>
+
+var myGamePiece;
+var myBackground;
+var myObstacles = [];
+var myScore;
+var myOver;
+
+var frameInt = 200;
+
+function startGame() {
+    myGamePiece = new component(60, 60, "mf.png", 250, 120, "image");
+	myBackground = new component(900, 500, "sky.png", 0, 0, "background");
+	myScore = new component("30px", "Consolas", "black", 700, 40, "text");
+	myStart = new component("40px", "Consolas", "green", 300, 230, "text");
+	myOver = new component("40px", "Consolas", "red", 300, 230, "text");
+    myGameArea.prepare();
+}
+
+
+
+var myGameArea = {
+	canvas : document.createElement("canvas"),
+    prepare : function() {
+		myObstacles = [];
+		clearInterval(this.begin);
+        this.canvas.width = 900;
+        this.canvas.height = 500;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.frameNo = 0;
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		startScreen();
+		
+		document.getElementById("1").style.display = "none";
+		document.getElementById("2").style.display = "none";
+		document.getElementById("3").style.display = "none";
+		document.getElementById("4").style.display = "none";
+		document.getElementById("cheat").style.display = "none";
+    },
+	start : function() {
+		this.begin = setInterval(updateGameArea, 10);
+	},
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    stop : function() {
+        clearInterval(this.begin);
+    }
+}
+
+function component(width, height, color, x, y,type) {
+	if (type == "image" || type == "background") {
+    this.image = new Image();
+    this.image.src = color;
+	}
+	this.type = type;
+    this.width = width;
+    this.height = height;
+    this.speedX = 0;
+    this.speedY = 0;    
+    this.x = x;
+    this.y = y;
+	this.gravity = 0.05;
+	this.gravityspeed = 0;
+	this.jumpCount = 0;
+    this.update = function() {
+		ctx = myGameArea.context;
+		if (this.type == "text") {
+			ctx.font = this.width + " " + this.height;
+			ctx.fillStyle = color;
+			ctx.fillText(this.text, this.x, this.y);
+		} else if (type == "image" || type == "background") {
+			  ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+				if (type == "background") {
+					ctx.drawImage(this.image, this.x + this.width, this.y, this.width, this.height);
+				}
+		} else {
+			ctx.fillStyle = color;
+			ctx.fillRect(this.x, this.y, this.width, this.height);
+		}
+    }
+    this.newPos = function() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+		if (this.type == "image") {
+			this.gravityspeed += this.gravity;
+			this.y += this.gravityspeed;
+		}
+		if (this.type == "background") {
+			if (this.x == -(this.width)) {
+				this.x = 0;
+			}
+		}
+	}
+	this.hitBottom = function() {
+		var fall = true
+		var rockbottom = myGameArea.canvas.height - this.height;
+		if (this.y < rockbottom) {
+			fall = false;
+		}
+		return fall;
+	}
+    this.crashWith = function(otherobj) {
+        var myleft = this.x;
+        var myright = this.x + (this.width);
+        var mytop = this.y;
+        var mybottom = this.y + (this.height);
+        var otherleft = otherobj.x;
+        var otherright = otherobj.x + (otherobj.width);
+        var othertop = otherobj.y;
+        var otherbottom = otherobj.y + (otherobj.height);
+        var crash = true;
+        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+            crash = false;
+        }
+        return crash;
+
+    }
+	
+}
+
+function startScreen() {
+	myStart.text = "Press START";
+	myStart.update();
+}
+
+function endScreen() {
+	myOver.text = "GAME OVER SCRUB";
+	myOver.update()
+	myGameArea.stop();
+}
+function updateGameArea() {
+	var one = Boolean(myGameArea.frameNo > ((6+2) *frameInt));
+	var two = Boolean(myGameArea.frameNo > ((12+2)*frameInt));
+	var three = Boolean(myGameArea.frameNo > ((18+2)*frameInt));
+	var four = Boolean(myGameArea.frameNo > ((24+2)*frameInt));
+    var x, y, z;
+	var end = false;
+	
+
+	if (one){
+		document.getElementById("1").style.display = "block";
+	} else if (two){
+		document.getElementById("2").style.display = "block";
+	} else if (three){
+		document.getElementById("3").style.display = "block";
+	} else if (four){
+		document.getElementById("4").style.display = "block";
+	}
+	
+	
+    for (i = 0; i < myObstacles.length; i += 1) {
+        if (myGamePiece.crashWith(myObstacles[i]) || myGamePiece.hitBottom()) {
+            endScreen();
+            return;
+        } 
+    }
+	if (myGamePiece.y < -80) {
+		document.getElementById("cheat").style.display = "block";
+		endScreen();
+	}
+		
+	myGameArea.clear();
+	myBackground.speedX = -1;
+	myBackground.newPos();
+	myBackground.update();
+	
+    myGameArea.frameNo += 1;
+    if (myGameArea.frameNo == 1 || everyinterval(frameInt) && !two) {
+		x = myGameArea.canvas.width;
+		minHeight = 50;
+		maxHeight = 300;
+		height = Math.floor(Math.random()*(maxHeight-minHeight+1)+minHeight);
+		minGap = 100;
+		maxGap = 200;
+		gap = Math.floor(Math.random()*(maxGap-minGap+1)+minGap);
+		myObstacles.push(new component(20, height, "wall.png", x, 0, "image"));
+		myObstacles.push(new component(20, 500 - height - gap, "wall.png", x, height + gap, "image"));
+	}
+    for (i = 0; i < myObstacles.length; i += 1) {
+		if (!two){
+			myObstacles[i].x += -1;
+		} else{
+			myObstacles[i].x += 1;
+		}
+        myObstacles[i].update();
+    }
+	var score = Math.floor((myGameArea.frameNo-90)/frameInt)-1;	
+	
+	
+	if (score<0) {
+		score = 0;
+	}
+	if (score<13) {
+		myScore.text = "SCORE: " + score;
+	} else if (score<25) {
+		myScore.text = "SCORE: " + (25-score);
+	} else {
+		myScore.text = "WELL DONE";
+	}
+	myScore.update();
+    myGamePiece.newPos();    
+    myGamePiece.update();
+	document.addEventListener('keydown', check, false);
+	document.addEventListener('keyup', balance, false);
+	
+	var allowed = true;
+	function check(e){
+		if (allowed){
+			if (e.keyCode === 32) {
+				accelerate();
+				allowed = false;
+			}
+		}
+		else {
+			return;
+		}
+	}
+	function balance(){
+		allowed=true;
+	}
+	if (myGamePiece.jumpCount>0) {
+		myGamePiece.gravity=-((Math.abs(7-myGamePiece.jumpCount))/7);
+		myGamePiece.jumpCount+=1;
+	} 
+	if (myGamePiece.jumpCount>4) {
+		myGamePiece.gravity=0.05;
+		myGamePiece.jumpCount=0;
+	}
+	
+}
+
+
+
+function everyinterval(n) {
+    if ((myGameArea.frameNo / n) % 1 == 0) {return true;}
+    return false;
+}
+
+function accelerate() {
+	myGamePiece.gravityspeed = 0;
+	if (myGamePiece.jumpCount>0) {
+		myGamePiece.jumpCount=0;
+	}
+	myGamePiece.jumpCount+=1;
+}
+
+
+</script>
+<div style="text-align:center;width:480px;">
+  <button onmousedown="accelerate()" ontouchstart="accelerate()">JUMP</button><br><br>
+  <button onmousedown="myGameArea.start()" ontouchstart="myGameArea.start()">START</button><br><br>
+  <button onmousedown="startGame()" ontouchstart="startGame()">RESTART</button><br><br>
+<p>Press SPACE or the up button to jump.</p>
+	<div>
+		<p id="1">Wow you're doin well!</p>
+		<p id="2">Aww shit here we go again.</p>
+		<p id="3">Not much left now keep going!</p>
+		<p id="4">Congratulations! You unlocked a secret: Press START twice for added difficulty</p>
+		<p id="cheat">No cheating!</p>
+	</div>
+</div>
+
+
+</body>
+</html>
